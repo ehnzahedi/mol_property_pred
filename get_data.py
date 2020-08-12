@@ -18,9 +18,10 @@ def fetch_single_class_data(test_size: Union[float, int] = 0.2,
         Should be between 0.0 and 1.0 and represent the proportion
         of the dataset to include in the test split. If int, represents the
         absolute number of test samples.
-
     is_stratified : bool (default=True)
         Whether data splits in a stratified fashion or not.
+    get_extracted_features : bool (default=True)
+        Whether data splits are extracted feature or smiles.
 
     Returns
     -------
