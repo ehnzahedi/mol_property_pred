@@ -13,13 +13,51 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
     An estimator that takes the extracted features of a molecule as input
     and predicts the P1 property.
 
+    Parameters
+    ----------
+    activation : Activation function to use.
+        If you don't specify anything, no activation is applied
+        (ie. "linear" activation: `a(x) = x`).
+    batch_size : Integer or `None`.
+        Number of samples per gradient update.
+        If unspecified, `batch_size` will default to 32.
+    epochs : Integer. Number of epochs to train the model.
+        An epoch is an iteration over the entire `x` and `y`
+        data provided.
+    validation_split: Float between 0 and 1.
+        Fraction of the training data to be used as validation data.
+        The model will set apart this fraction of the training data,
+        will not train on it, and will evaluate the loss and any model metrics
+        on this data at the end of each epoch.
+    class_weight : Optional dictionary mapping class indices (integers)
+        to a weight (float) value, used for weighting the loss function
+        (during training only).
+        This can be useful to tell the model to "pay more attention" to
+        samples from an under-represented class.
+    optimizer : String (name of optimizer) or optimizer instance.
+        See `tf.keras.optimizers`.
+    loss : String (name of objective function), objective function or
+        `tf.losses.Loss` instance. See `tf.losses`.
+    metrics : List of metrics to be evaluated by the model during training
+        and testing. Typically you will use `metrics=['accuracy']`.
 
+
+    Attributes
+    ----------
+    classes_ : ndarray of shape (n_classes,)
+        The classes labels.
+    n_classes_ : int
+        The number of class lebels.
+    history : object
+        a dictionary recording training loss values and metrics values at
+        successive epochs, as well as validation loss values and validation
+        metrics values (if applicable).
     """
 
     def __init__(self, activation: str = 'relu',
                  optimizer: Union[str, Callable] = 'adam',
                  batch_size: int = 32, loss='categorical_crossentropy',
-                 validation_split: float = 0.15, epochs: int = 100,
+                 validation_split: float = 0.2, epochs: int = 100,
                  metrics: List[Union[str, Callable, None]] = None,
                  class_weight=None
                  ):
@@ -32,9 +70,9 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         self.metrics = metrics
         self.batch_size = batch_size
 
-    def fit(self, X, y, **kwargs):
-        """
-        Fit the model according to the given training data.
+    def fit(self, X, y):
+        """ Fits the model according to the given training data.
+
         Parameters
         ----------
         X : {array-like, sparse matrix} of shape (n_samples, n_features)
@@ -68,7 +106,7 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_auc',
             verbose=0,
-            patience=20,
+            patience=25,
             mode='max',
             restore_best_weights=True)
 
@@ -76,52 +114,37 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
                                  batch_size=self.batch_size,
                                  epochs=self.epochs,
                                  callbacks=[early_stopping],
-                                 validation_split=0.2
+                                 validation_split=self.validation_split,
+                                 class_weight=self.class_weight,
+                                 verbose=2
                                  )
         return self
 
     def predict(self, X):
         """Returns the class predictions for the given test data.
-        Arguments:
+
+        Parameters
+        ----------
             X : array-like, shape `(n_samples, n_features)`
                 Test samples where `n_samples` is the number of samples
                 and `n_features` is the number of features.
 
-        Returns:
-            preds: array-like, shape `(n_samples,)`
+        Returns
+        ------
+            preds : array-like, shape `(n_samples,)`
                 Class predictions.
         """
         check_is_fitted(self, 'history')
         probs = self.history.model.predict(X)
-        return np.argmax(probs, axis=1)
+        preds = np.argmax(probs, axis=1)
+        return preds
 
     def save_model(self):
-        # saving model
-        # json_model = self.history.model.to_json()
-        # open('model_architecture.json', 'w').write(json_model)
-        # # saving weights
-        # self.history.model.save_weights('model_weights.h5', overwrite=True)
-
-        # tf.keras.classifiers.save_model(self.history.model, 'saved_model1')
         parent_dir = Path().resolve().parent.absolute()
         save_path = parent_dir / 'saved_models'
         self.history.model.save("saved_models/model1.h5")
 
     def load_model(self):
-        # loading model
-        # model = tf.keras.classifiers.load_model('saved_model1')
-        # model.compile(optimizer=self.optimizer,
-        #               loss=self.loss,
-        #               metrics=self.metrics)
-
-        # loading model
-        # model = tf.keras.classifiers.model_from_json(
-        #     open('model_architecture.json').read())
-        # model.load_weights('model_weights.h5')
-        # model.compile(optimizer=self.optimizer,
-        #               loss=self.loss,
-        #               metrics=self.metrics)
-
         reconstructed_model = tf.keras.models.load_model(
             "saved_models/model1.h5")
         reconstructed_model.compile(optimizer=self.optimizer,
