@@ -2,7 +2,6 @@ from typing import Union, Callable, List, Any
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 import tensorflow as tf
@@ -46,10 +45,6 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
 
     Attributes
     ----------
-    classes_ : ndarray of shape (n_classes,)
-        The classes labels.
-    n_classes_ : int
-        The number of class lebels.
     history : object
         a dictionary recording training loss values and metrics values at
         successive epochs, as well as validation loss values and validation
@@ -121,7 +116,6 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
         model.compile(loss=self.loss,
                       optimizer=self.optimizer,
                       metrics=self.metrics)
-        model.summary()
 
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_auc',
@@ -170,8 +164,8 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
         return preds
 
     def save_model(self):
-        parent_dir = Path().resolve().parent.absolute()
-        save_path = parent_dir / 'saved_models'
+        # parent_dir = Path().resolve().parent.absolute()
+        # save_path = parent_dir / 'saved_models'
         self.history.model.save("saved_models/model1.h5")
 
     def load_model(self):
@@ -188,7 +182,6 @@ def build_model(input_shape, activation):
     Builds a CNN model
 
     """
-
     input_layer = tf.keras.layers.Input(shape=input_shape)
 
     conv1 = tf.keras.layers.Conv1D(filters=64, kernel_size=5, padding='same')(
@@ -199,10 +192,11 @@ def build_model(input_shape, activation):
     conv2 = tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same')(
         conv1)
     conv2 = tf.keras.layers.BatchNormalization()(conv2)
-    conv2 = tf.keras.layers.Activation('relu')(conv2)
+    conv2 = tf.keras.layers.Activation(activation)(conv2)
 
     gap_layer = tf.keras.layers.GlobalAveragePooling1D()(conv2)
 
+    # in the case of overfitting, we can add a dropout layer as follows
     # dropout = tf.keras.layers.Dropout(rate=0.3)(gap_layer)
     output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(
         gap_layer)

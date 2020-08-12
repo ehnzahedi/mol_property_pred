@@ -1,4 +1,4 @@
-from typing import Union, Callable, List
+from typing import Union, Callable, List, Any
 
 import numpy as np
 from pathlib import Path
@@ -55,8 +55,8 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, activation: str = 'relu',
-                 optimizer: Union[str, Callable] = 'adam',
-                 batch_size: int = 32, loss='categorical_crossentropy',
+                 optimizer: Any = 'adam',
+                 batch_size: int = 32, loss: str = 'categorical_crossentropy',
                  validation_split: float = 0.2, epochs: int = 100,
                  metrics: List[Union[str, Callable, None]] = None,
                  class_weight=None
