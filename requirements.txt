@@ -1,0 +1,8 @@
+rdkit
+numpy
+scikit-learn== 0.23.2
+tensorflow== 2.0.0
+pandas
+flask
+seaborn
+matplotlib==3.3.0
