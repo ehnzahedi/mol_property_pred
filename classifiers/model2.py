@@ -1,11 +1,11 @@
-from typing import Union, Callable, List
+from typing import Union, Callable, List, Any
 
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
 
 MAX_SEQUENCE_LENGTH = 128
 
@@ -58,8 +58,8 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, activation: str = 'relu',
-                 optimizer: Union[str, Callable] = 'adam',
-                 batch_size: int = 32, loss='categorical_crossentropy',
+                 optimizer: Any = 'adam',
+                 batch_size: int = 32, loss: str = 'binary_crossentropy',
                  validation_split: float = 0.15, epochs: int = 100,
                  metrics: List[Union[str, Callable, None]] = None,
                  max_length: int = 128, class_weight=None
@@ -90,15 +90,6 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
         self
             Fitted estimator.
         """
-
-        if len(y.shape) == 2 and y.shape[1] > 1:
-            self.classes_ = np.arange(y.shape[1])
-        elif (len(y.shape) == 2 and y.shape[1] == 1) or len(y.shape) == 1:
-            y = to_categorical(y)
-        else:
-            raise ValueError('Invalid shape for y: ' + str(y.shape))
-        self.n_classes_ = len(np.unique(y))
-
         # Create vocabulary with training smiles
         tk = tf.keras.preprocessing.text.Tokenizer(num_words=None,
                                                    char_level=True,
@@ -108,10 +99,10 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
         self.tk = tk
 
         # Vectorize training smiles.
-        X_seq = self.tk.texts_to_sequences(X)
+        X_seq = tk.texts_to_sequences(X)
 
         # Get max sequence length.
-        max_length = len(max(X, key=len))
+        self.max_length = len(max(X, key=len))
         if self.max_length > MAX_SEQUENCE_LENGTH:
             self.max_length = MAX_SEQUENCE_LENGTH
 
@@ -122,27 +113,34 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
                                                               maxlen=self.max_length,
                                                               padding='post',
                                                               truncating='post')
+        X_pad_reshaped = X_pad.reshape(X_pad.shape[0], X_pad.shape[1], 1)
 
-        model = build_model(input_shape=X.shape[1:],
-                            activation=self.activation,
-                            n_outputs=self.n_classes_,
-                            optimizer=self.optimizer,
-                            loss=self.loss,
-                            metrics=self.metrics)
+        model = build_model(input_shape=X_pad_reshaped.shape[1:],
+                            activation=self.activation)
+
+        model.compile(loss=self.loss,
+                      optimizer=self.optimizer,
+                      metrics=self.metrics)
+        model.summary()
 
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_auc',
-            verbose=0,
+            verbose=1,
             patience=20,
             mode='max',
             restore_best_weights=True)
 
-        self.history = model.fit(X, y,
-                                 batch_size=self.batch_size,
-                                 epochs=self.epochs,
-                                 callbacks=[early_stopping],
-                                 validation_split=0.2
-                                 )
+        self.history = model.fit(
+            X_pad_reshaped,
+            y,
+            batch_size=self.batch_size,
+            epochs=self.epochs,
+            callbacks=[early_stopping],
+            validation_split=self.validation_split,
+            class_weight=self.class_weight,
+            verbose=2
+        )
+
         return self
 
     def predict(self, X):
@@ -157,8 +155,18 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
                 Class predictions.
         """
         check_is_fitted(self, 'history')
-        probs = self.history.model.predict(X)
-        preds = np.argmax(probs, axis=1)
+        X = pd.Series(X)
+
+        # Vectorize testing smiles.
+        X_seq = self.tk.texts_to_sequences(X)
+        X_pad = tf.keras.preprocessing.sequence.pad_sequences(X_seq,
+                                                              maxlen=self.max_length,
+                                                              padding='post',
+                                                              truncating='post')
+        X_pad_reshaped = X_pad.reshape(X_pad.shape[0], X_pad.shape[1], 1)
+
+        probs = self.history.model.predict(X_pad_reshaped.astype('float64'))
+        preds = np.array(probs > 0.5).astype('int')
         return preds
 
     def save_model(self):
@@ -175,28 +183,30 @@ class SmilePredictor(BaseEstimator, ClassifierMixin):
         return reconstructed_model
 
 
-# TODO: change the model2
-def build_model(input_shape, activation, n_outputs, optimizer, loss, metrics):
+def build_model(input_shape, activation):
     """
-    Builds a DNN model
+    Builds a CNN model
 
     """
 
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(256, input_shape=input_shape,
-                              activation=activation),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(128, activation=activation),
-        tf.keras.layers.Dropout(0.3),
-        tf.keras.layers.Dense(64, activation=activation),
-        tf.keras.layers.Dense(16, activation=activation),
-        tf.keras.layers.BatchNormalization(axis=1),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(n_outputs, activation="softmax")
-    ])
+    input_layer = tf.keras.layers.Input(shape=input_shape)
 
-    model.compile(optimizer=optimizer,
-                  loss=loss,
-                  metrics=metrics)
+    conv1 = tf.keras.layers.Conv1D(filters=64, kernel_size=5, padding='same')(
+        input_layer)
+    conv1 = tf.keras.layers.BatchNormalization()(conv1)
+    conv1 = tf.keras.layers.Activation(activation=activation)(conv1)
+
+    conv2 = tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same')(
+        conv1)
+    conv2 = tf.keras.layers.BatchNormalization()(conv2)
+    conv2 = tf.keras.layers.Activation('relu')(conv2)
+
+    gap_layer = tf.keras.layers.GlobalAveragePooling1D()(conv2)
+
+    # dropout = tf.keras.layers.Dropout(rate=0.3)(gap_layer)
+    output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(
+        gap_layer)
+
+    model = tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
 
     return model
