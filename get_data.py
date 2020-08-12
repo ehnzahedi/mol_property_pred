@@ -8,7 +8,8 @@ from feature_extractor import fingerprint_features
 
 
 def fetch_single_class_data(test_size: Union[float, int] = 0.2,
-                            is_stratified: bool = True):
+                            is_stratified: bool = True,
+                            get_extracted_features: bool = True):
     """Split single label dataset into train and test.
 
     Parameters
@@ -26,18 +27,25 @@ def fetch_single_class_data(test_size: Union[float, int] = 0.2,
 
     """
     data = pd.read_csv('data/dataset_single.csv')
-    data = data[:100]
+    # data = data[:100]
 
-    extracted_features = np.array([fingerprint_features(smile, size=2048)
-                                   for smile in data['smiles'].values])
-    one_hot_y = to_categorical(data['P1'].values)
+    if get_extracted_features:
+        X = np.array([fingerprint_features(smile, size=2048)
+                      for smile in data['smiles'].values])
+        y = to_categorical(data['P1'].values)
+    else:
+        X = data['smiles'].values
+        y = data['P1'].values
+
+    # one_hot_y = to_categorical(data['P1'].values)
+    # one_hot_y = data['P1'].values
+
     if is_stratified:
-        stratify = one_hot_y
+        stratify = y
     else:
         stratify = None
 
-    X_train, X_test, y_train, y_test = train_test_split(extracted_features,
-                                                        one_hot_y,
+    X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                         test_size=test_size,
                                                         random_state=42,
                                                         stratify=stratify)
