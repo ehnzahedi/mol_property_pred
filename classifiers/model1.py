@@ -40,6 +40,9 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         `tf.losses.Loss` instance. See `tf.losses`.
     metrics : List of metrics to be evaluated by the model during training
         and testing. Typically you will use `metrics=['accuracy']`.
+    is_multi_label : bool
+        whether the data is multi label or not (dataset_single) or
+        (dataset_multi)
 
 
     Attributes
@@ -55,11 +58,11 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, activation: str = 'relu',
-                 optimizer: Any = 'adam',
+                 optimizer: Any = 'adam', output_activation: str = 'softmax',
                  batch_size: int = 32, loss: str = 'categorical_crossentropy',
                  validation_split: float = 0.2, epochs: int = 100,
                  metrics: List[Union[str, Callable, None]] = None,
-                 class_weight=None
+                 class_weight=None, is_multi_label: bool = False
                  ):
         self.activation = activation
         self.optimizer = optimizer
@@ -69,6 +72,8 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         self.epochs = epochs
         self.metrics = metrics
         self.batch_size = batch_size
+        self.output_activation = output_activation
+        self.is_multi_label = is_multi_label
 
     def fit(self, X, y):
         """ Fits the model according to the given training data.
@@ -91,17 +96,17 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
             self.classes_ = np.arange(y.shape[1])
         elif (len(y.shape) == 2 and y.shape[1] == 1) or len(y.shape) == 1:
             y = to_categorical(y)
-
         else:
             raise ValueError('Invalid shape for y: ' + str(y.shape))
-        self.n_classes_ = len(np.unique(y))
+        self.n_classes_ = y.shape[1]
 
         model = build_model(input_shape=X.shape[1:],
                             activation=self.activation,
-                            n_outputs=self.n_classes_,
-                            optimizer=self.optimizer,
-                            loss=self.loss,
-                            metrics=self.metrics)
+                            output_activation=self.output_activation,
+                            n_outputs=self.n_classes_)
+        model.compile(optimizer=self.optimizer,
+                      loss=self.loss,
+                      metrics=self.metrics)
 
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_auc',
@@ -136,7 +141,11 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         """
         check_is_fitted(self, 'history')
         probs = self.history.model.predict(X)
-        preds = np.argmax(probs, axis=1)
+        if self.is_multi_label:
+            preds = [prob>0.5 for prob in probs]
+            preds = np.array(preds).astype('int')
+        else:
+            preds = np.argmax(probs, axis=1)
         return preds
 
     def save_model(self):
@@ -153,7 +162,7 @@ class FeatureExtractedClassifier(BaseEstimator, ClassifierMixin):
         return reconstructed_model
 
 
-def build_model(input_shape, activation, n_outputs, optimizer, loss, metrics):
+def build_model(input_shape, activation, output_activation, n_outputs):
     """
     Builds a DNN model
 
@@ -169,11 +178,7 @@ def build_model(input_shape, activation, n_outputs, optimizer, loss, metrics):
         tf.keras.layers.Dense(16, activation=activation),
         tf.keras.layers.BatchNormalization(axis=1),
         tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(n_outputs, activation="softmax")
+        tf.keras.layers.Dense(n_outputs, activation=output_activation)
     ])
-
-    model.compile(optimizer=optimizer,
-                  loss=loss,
-                  metrics=metrics)
 
     return model
