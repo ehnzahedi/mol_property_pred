@@ -7,7 +7,7 @@ from tensorflow.keras.utils import to_categorical
 from feature_extractor import fingerprint_features
 
 
-def fetch_single_class_data(test_size: Union[float, int] = 0.2,
+def fetch_single_label_data(test_size: Union[float, int] = 0.2,
                             is_stratified: bool = True,
                             get_extracted_features: bool = True):
     """Split single label dataset into train and test.
@@ -25,10 +25,9 @@ def fetch_single_class_data(test_size: Union[float, int] = 0.2,
 
     Returns
     -------
-
+    train and test datasets
     """
     data = pd.read_csv('data/dataset_single.csv')
-    # data = data[:100]
 
     if get_extracted_features:
         X = np.array([fingerprint_features(smile, size=2048)
@@ -37,9 +36,6 @@ def fetch_single_class_data(test_size: Union[float, int] = 0.2,
     else:
         X = data['smiles'].values
         y = data['P1'].values
-
-    # one_hot_y = to_categorical(data['P1'].values)
-    # one_hot_y = data['P1'].values
 
     if is_stratified:
         stratify = y
@@ -54,7 +50,8 @@ def fetch_single_class_data(test_size: Union[float, int] = 0.2,
     return X_train, X_test, y_train, y_test
 
 
-def fetch_multi_class_data(test_size: Union[float, int] = 0.2):
+def fetch_multi_label_data(test_size: Union[float, int] = 0.2,
+                           get_extracted_features: bool = True):
     """Split single label dataset into train and test.
 
     Parameters
@@ -63,6 +60,8 @@ def fetch_multi_class_data(test_size: Union[float, int] = 0.2):
         Should be between 0.0 and 1.0 and represent the proportion
         of the dataset to include in the test split. If int, represents the
         absolute number of test samples.
+    get_extracted_features : bool (default=True)
+        Whether data splits are extracted feature or smiles.
 
     Returns
     -------
@@ -70,7 +69,13 @@ def fetch_multi_class_data(test_size: Union[float, int] = 0.2):
 
     """
     data = pd.read_csv('data/dataset_multi.csv')
-    X = data['smiles'].values
+
+    if get_extracted_features:
+        X = np.array([fingerprint_features(smile, size=2048)
+                      for smile in data['smiles'].values])
+    else:
+        X = data['smiles'].values
+
     y = data[['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9']].values
 
     X_train, X_test, y_train, y_test = train_test_split(X, y,

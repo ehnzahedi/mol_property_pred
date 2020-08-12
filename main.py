@@ -6,11 +6,14 @@ from feature_extractor import fingerprint_features
 
 from classifiers.model1 import FeatureExtractedClassifier
 from classifiers.model2 import SmilePredictor
-from get_data import fetch_single_class_data
+from get_data import fetch_single_label_data
 from utils import plot_cm, plot_metrics
 
+# we use class weight since the data is imbalanced
+# the following class weights is calculated in the data_exploration file
 CLASS_WEIGHTS = {0: 2.81, 1: 0.61}
 
+# metrics for the evaluation of DL models
 METRICS = [
     tf.keras.metrics.BinaryAccuracy(name='accuracy'),
     tf.keras.metrics.Precision(name='precision'),
@@ -73,7 +76,7 @@ def predict_smile(clf, s):
 
 if __name__ == "__main__":
     if sys.argv[1] == 'model1':
-        X_train, X_test, y_train, y_test = fetch_single_class_data(
+        X_train, X_test, y_train, y_test = fetch_single_label_data(
             get_extracted_features=True)
         if sys.argv[2] == 'train':
             clf1 = train_model1(X_train, y_train, metrics=METRICS,
