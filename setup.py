@@ -7,9 +7,9 @@ here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
-    name="moleculepred",
+    name="molpred",
     version="0.0.1",
-    author="Ehsan Zahedi",
+    author="Ehsan",
     description="Deep learning classifiers for molecular property prediction",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,11 +19,14 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
     python_requires='>=3.6',
+    entry_points={
+        'console_scripts': ['train=main.command_line:train_model1'],
+    },
     install_requires=[
-            'tensorflow',
-            'numpy',
-            'pandas',
-            'scikit-learn',
-            'scipy',
-        ],
+        'tensorflow',
+        'numpy',
+        'pandas',
+        'scikit-learn',
+        'scipy',
+    ],
 )
