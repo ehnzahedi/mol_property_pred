@@ -42,7 +42,7 @@ Extracted features are zero and one (similar to one-hot format). We can use both
 
 - ## Model2
 This model takes the smile string character as input and predict the `P1` property.
-Sice smiles are sequential characters, a custom CNN model is implementd to get smiles and predict `P1`.  
+Sice smiles are sequential characters, a custom CNN model is implementd to get smiles and predict `P1`.  The structure of this model selected redarding FCN model in this [paper](https://arxiv.org/pdf/1809.04356.pdf).
 
   - For model2, `SmilePredictor` estimator can be set similar to:
   
@@ -74,6 +74,8 @@ Extension of Model1 to predict the `P1, P2,...P9` properties of the `dataset_mul
 
 #### - All the three above models are impemented as estimatores in `classifier/` . The first estimitor is designed in a way that can be trained and made prediction for both single-label and multi-label data. As a result, the first estimator can be used as `Model1` and `Model3`. 
 
+## Example
+To better use the deep learning models (estimators) and evaluate them, please see [this](https://github.com/ehnzahedi/mol_property_pred/blob/dev/example.ipynb) notebook.
 
 ## Main
 The `main.py` allows users to train and evaluate a model as well as predicting the property `P1` for a given smile. Try entering `python main.py` in command line with these arguments:
@@ -90,11 +92,15 @@ The `main.py` allows users to train and evaluate a model as well as predicting t
 ## Evaluation
 During the training a fraction of training data is used for validation. This fraction can be set by `validation_split` in the estimators. Two function in [utils.py](https://github.com/ehnzahedi/mol_property_pred/blob/dev/utils.py) are used to plot and calculate the desired metric for validation set and test set. 
 
+Since `data/dataset_multi.csv` is multi label, [`hamming_loss`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.hamming_loss.html), in addition to other metrics, is used to validate the performance of Model3. 
+
 
 
 ## Flask api
 To serve model1, you need to run `app.py` python file as follows.
+
 `python app.py`
+
 Once executed, copy the URL into a browser and it should open a web application hosted on your local machine (127.0.0.1). Try entering a molecule smile in the address bar of the browser (similar to the following) to get the prediction.
 
 `http://127.0.0.1:5000/predict?smile=Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C`
