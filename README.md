@@ -42,7 +42,7 @@ Extracted features are zero and one (similar to one-hot format). We can use both
 
 - ## Model2
 This model takes the smile string character as input and predict the `P1` property.
-Sice smiles are sequential characters, a custom CNN model is implementd to get smiles and predict `P1`.  
+Sice smiles are sequential characters, a custom CNN model is implementd to get smiles and predict `P1`.  The structure of this model selected redarding FCN model in this [paper](https://arxiv.org/pdf/1809.04356.pdf).
 
   - For model2, `SmilePredictor` estimator can be set similar to:
   
