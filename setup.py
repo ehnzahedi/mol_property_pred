@@ -19,9 +19,9 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
     python_requires='>=3.6',
-    entry_points={
-        'console_scripts': ['train=main.command_line:train_model1'],
-    },
+    # entry_points={
+    #     'console_scripts': ['train=main.command_line:train_model1'],
+    # },
     install_requires=[
         'tensorflow',
         'numpy',
