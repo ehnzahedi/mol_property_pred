@@ -133,6 +133,5 @@ if __name__ == "__main__":
                 x = preprocess_smile(str(smile))
                 predict_smile3(clf1, x)
     else:
-        # sys.argv[1:] is None:
         print("You need to enter your desired model, "
               "[train, evaluate, predict]")
