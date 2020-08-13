@@ -92,39 +92,47 @@ def predict_smile3(clf, s):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == 'model1':
-        X_train, X_test, y_train, y_test = fetch_single_label_data(
-            get_extracted_features=True)
-        if sys.argv[2] == 'train':
-            clf1 = train_model1(X_train, y_train, metrics=METRICS,
-                                class_weight=CLASS_WEIGHTS)
-            clf1.history.model.save("saved_models/model1.h5")
-            print("model1 saved!")
-        if sys.argv[2] == 'evaluate':
-            print("evaluation...")
-            clf1 = tf.keras.models.load_model("saved_models/model1.h5")
-            evaluate_model(clf1, X_test, y_test)
-        if sys.argv[2] == 'predict':
-            smile = sys.argv[3]
-            clf1 = tf.keras.models.load_model("saved_models/model1.h5")
-            print(f"smile: {smile}")
-            x = preprocess_smile(str(smile))
-            predict_smile(clf1, x)
 
-    if sys.argv[1] == 'model3':
-        X_train, X_test, y_train, y_test = fetch_multi_label_data(
-            get_extracted_features=True)
-        if sys.argv[2] == 'train':
-            clf1 = train_model3(X_train, y_train, metrics=METRICS)
-            clf1.history.model.save("saved_models/model3.h5")
-            print("model3 saved!")
-        if sys.argv[2] == 'evaluate':
-            print("evaluation...")
-            clf1 = tf.keras.models.load_model("saved_models/model3.h5")
-            evaluate_model3(clf1, X_test, y_test)
-        if sys.argv[2] == 'predict':
-            smile = sys.argv[3]
-            clf1 = tf.keras.models.load_model("saved_models/model3.h5")
-            print(f"smile: {smile}")
-            x = preprocess_smile(str(smile))
-            predict_smile3(clf1, x)
+    args = sys.argv
+
+    if len(args) > 1:
+        if sys.argv[1] == 'model1':
+            X_train, X_test, y_train, y_test = fetch_single_label_data(
+                get_extracted_features=True)
+            if sys.argv[2] == 'train':
+                clf1 = train_model1(X_train, y_train, metrics=METRICS,
+                                    class_weight=CLASS_WEIGHTS)
+                clf1.history.model.save("saved_models/model1.h5")
+                print("model1 saved!")
+            if sys.argv[2] == 'evaluate':
+                print("evaluation...")
+                clf1 = tf.keras.models.load_model("saved_models/model1.h5")
+                evaluate_model(clf1, X_test, y_test)
+            if sys.argv[2] == 'predict':
+                smile = sys.argv[3]
+                clf1 = tf.keras.models.load_model("saved_models/model1.h5")
+                print(f"smile: {smile}")
+                x = preprocess_smile(str(smile))
+                predict_smile(clf1, x)
+
+        if sys.argv[1] == 'model3':
+            X_train, X_test, y_train, y_test = fetch_multi_label_data(
+                get_extracted_features=True)
+            if sys.argv[2] == 'train':
+                clf1 = train_model3(X_train, y_train, metrics=METRICS)
+                clf1.history.model.save("saved_models/model3.h5")
+                print("model3 saved!")
+            if sys.argv[2] == 'evaluate':
+                print("evaluation...")
+                clf1 = tf.keras.models.load_model("saved_models/model3.h5")
+                evaluate_model3(clf1, X_test, y_test)
+            if sys.argv[2] == 'predict':
+                smile = sys.argv[3]
+                clf1 = tf.keras.models.load_model("saved_models/model3.h5")
+                print(f"smile: {smile}")
+                x = preprocess_smile(str(smile))
+                predict_smile3(clf1, x)
+    else:
+        # sys.argv[1:] is None:
+        print("You need to enter your desired model, "
+              "[train, evaluate, predict]")
