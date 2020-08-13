@@ -98,7 +98,9 @@ Since `data/dataset_multi.csv` is multi label, [`hamming_loss`](https://scikit-l
 
 ## Flask api
 To serve model1, you need to run `app.py` python file as follows.
+
 `python app.py`
+
 Once executed, copy the URL into a browser and it should open a web application hosted on your local machine (127.0.0.1). Try entering a molecule smile in the address bar of the browser (similar to the following) to get the prediction.
 
 `http://127.0.0.1:5000/predict?smile=Cc1cccc(N2CCN(C(=O)C34CC5CC(CC(C5)C3)C4)CC2)c1C`
